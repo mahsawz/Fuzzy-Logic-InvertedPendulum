@@ -1,0 +1,72 @@
+FUNCTION_BLOCK Inverted_Pendulum
+
+    VAR_INPUT
+        theta : REAL;
+        theta_dot : REAL;
+    END_VAR
+
+    VAR_OUTPUT
+        outputF : REAL;
+    END_VAR
+
+    FUZZIFY theta
+        TERM up :=  (135,0) (180,1) (225,0);
+        TERM upRight :=  (150,0) (165,1) (180,0);
+        TERM upLeft := (180,0) (195,1) (210,0);
+        TERM upRightUpper :=  (170,0) (180,1);
+        TERM upLeftUpper:=  (180,1) (190,0);
+        TERM downRight := (0,1) (45,0);
+        TERM downLeft := (315,0) (360,1);
+    END_FUZZIFY
+
+    FUZZIFY theta_dot
+        TERM cw := (-20,0) (-15,1) (-2,0);
+        TERM cw_fast := (-60,0) (-40,1) (-20,0);
+        TERM cw_veryfast :=(-105,0) (-95,1) (-65,0 ) ;
+        TERM ccw := (2,0) (15,1) (20,0);
+        TERM ccw_fast := (20,0) (40,1) (60,0);
+        TERM ccw_veryfast := (65,0) (95,1) (105,0);
+    END_FUZZIFY
+    
+    DEFUZZIFY input
+        TERM stop := (-10,0) (0,1) (10,0);
+        TERM lowLeft := (-100,0) (-80,1) (-60,0);
+        TERM leftFast := (-700,0) (-400,1) (-100,0);
+        TERM left_veryfast := (-320,0) (-500,1) (-820,0) ;
+        TERM rightFast := (100,0) (400,1) (700,0);
+        TERM lowRight := (60,0) (80,1) (100,0);
+        TERM right_veryfast := (380,0) (500,1) (820,0);
+        ACCU : MAX; (* AlgebraicSum *)
+        METHOD : COG;
+        DEFAULT := 0;
+    END_DEFUZZIFY
+
+    RULEBLOCK Inverted_Pendulum
+        AND : AlgebraicProduct;
+        OR : MAX;
+        RULE 1 :
+         IF theta IS downRight THEN outputF IS lowRight;
+        RULE 2 :
+         IF theta IS downLeft THEN outputF IS lowLeft;
+        RULE 3 :
+         IF theta IS upRightUpper AND theta_dot IS cw THEN outputF IS rightFast;
+        RULE 4 :
+         IF theta IS upLeftUpper AND theta_dot IS ccw THEN outputF IS leftFast;
+        RULE 5 :
+         IF theta IS upLeft THEN outputF IS leftFast;
+        RULE 6 :
+         IF theta IS upRight THEN outputF IS rightFast;
+        RULE 7 :
+         IF theta_dot IS cw_fast AND (theta IS upRight OR theta IS upRightUpper) THEN outputF IS rightFast;
+        RULE 8 :
+         IF theta_dot IS ccw_fast AND (theta IS upLeft OR theta IS upLeftUpper) THEN outputF IS leftFast;
+    END_RULEBLOCK
+
+END_FUNCTION_BLOCK
+(*
+        ACC = AlgebraicSum()
+        COM = AlgebraicSum()
+        CER = AlgebraicProduct()
+        INF = AlgebraicProduct()
+        COG = fuzzy.defuzzify.COG.COG(INF=INF,ACC=ACC,failsafe = 0)
+*)
